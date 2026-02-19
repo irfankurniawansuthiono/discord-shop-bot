@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1200,
+    "name": "Fishing Shop",
+    "description": "A complete fishing equipment store providing rods, bait, and essential fishing supplies for beginners and professionals.",
+    "items": [
+      {
+        "id": 1210,
+        "name": "Fishing Rods",
+        "description": "A selection of high-quality fishing rods designed for different fishing techniques and water conditions.",
+        "items": [
+          {
+            "id": 1211,
+            "name": "Spinning Rod",
+            "price": 150000,
+            "description": "Light weight spinning rod suitable for fresh water fishing, ideal for beginners and casual anglers."
+          },
+          {
+            "id": 1212,
+            "name": "Casting Rod",
+            "price": 200000,
+            "description": "Heavy duty casting rod designed for salt water fishing, offering strength and durability for larger fish."
+          }
+        ]
+      },
+      {
+        "id": 1220,
+        "name": "Bait Shop",
+        "description": "Provides fresh live bait in various quantities to support different fishing needs.",
+        "items": [
+          {
+            "id": 1221,
+            "name": "10x Live Bait",
+            "qty": 10,
+            "price": 100,
+            "description": "Small pack of fresh live bait, suitable for short fishing sessions."
+          },
+          {
+            "id": 1222,
+            "name": "50x Live Bait",
+            "qty": 50,
+            "price": 1000,
+            "description": "Medium pack of fresh live bait, ideal for longer fishing trips."
+          },
+          {
+            "id": 1223,
+            "name": "100x Live Bait",
+            "qty": 100,
+            "price": 1500,
+            "description": "Large pack of fresh live bait, perfect for intensive fishing activities or group use."
+          }
+        ]
+      }
+    ]
+  }
+]
