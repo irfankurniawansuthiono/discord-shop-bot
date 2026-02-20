@@ -40,6 +40,7 @@ import {
 } from "../config";
 import { formatBalance } from "./formatBalance";
 import type Stream from "stream";
+import { ManagerShopProtector } from "./protector";
 let shopData: any = null;
 export function getShopCategories() {
   if (!shopData) {
@@ -355,11 +356,6 @@ async function createPaymentProof(
           transactionId,
           "Transaction cancelled because no payment proof was submitted within 5 minutes",
         );
-        // Update database status -> cancelled
-        itemPurchasePath.delete(transactionId);
-        channel.delete().catch((err) => {
-          console.error("Failed to delete order channel:", err);
-        });
         return;
       }
       const paymentProof = submittedPaymentProof.fields.getUploadedFiles(
@@ -485,6 +481,13 @@ async function createChannelOrder(
         ],
       },
       {
+        id: interaction.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.ReadMessageHistory,
+        ],
+      },
+      {
         id: interaction.client.user!.id,
         allow: [
           PermissionFlagsBits.ViewChannel,
@@ -568,11 +571,14 @@ async function createOrderConfirmation(
 
   collector.on("collect", async (i) => {
     if (i.customId === "confirm") {
+      // protector
+      const protectorResult = await ManagerShopProtector(i);
+      if (!protectorResult) return;
       await user.send({
         content: `✅ Your order **${transactionId}** for **${item.name}** has been confirmed! Please wait for further updates from our shop managers in this DM.`,
         embeds: [await createReceipt(interaction, item, transactionId)],
       });
-
+      if (!protectorResult) return;
       await reply.edit({
         content: `📢 New order received for **${item.name}**!`,
         embeds: [embed],
@@ -606,7 +612,8 @@ async function createOrderConfirmation(
       });
       completeCollector.on("collect", async (i) => {
         if (i.customId === `complete-${transactionId}`) {
-          await i.deferUpdate();
+          const protectorResult = await ManagerShopProtector(i);
+          if (!protectorResult) return;
           await channel.delete().catch((err) => {
             console.error("Failed to delete order channel:", err);
           });
@@ -625,6 +632,8 @@ async function createOrderConfirmation(
         content: `✅ Order **${transactionId}** has been confirmed by <@${i.user.id}>.`,
       });
     } else if (i.customId === "reject") {
+      const protectorResult = await ManagerShopProtector(i);
+      if (!protectorResult) return;
       const rejectModal = new ModalBuilder()
         .setCustomId(`reject-${transactionId}`)
         .setTitle("Reject Order");
@@ -697,6 +706,8 @@ async function createOrderConfirmation(
         console.error("Failed to delete order channel:", err);
       });
     } else if (i.customId === "refund") {
+      const protectorResult = await ManagerShopProtector(i);
+      if (!protectorResult) return;
       await user.send({
         content: `💸 Order **${transactionId}** has been marked for refund.`,
       });

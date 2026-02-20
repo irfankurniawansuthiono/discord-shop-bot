@@ -39,8 +39,26 @@ This project uses Bun for package management.
 ```bash
 bun install
 ```
+### 3. Configure Environment Variables
+1. Create a `.env` file in the root directory of the project.
 
-### 3. Configure the Bot
+```bash
+touch .env
+```
+
+2. Add the following environment variables to the `.env` file:
+
+```bash
+BOT_TOKEN=
+BOT_APP_ID=
+BOT_PUBLIC_KEY=
+```
+
+3. Replace `BOT_TOKEN`, `BOT_APP_ID`, and `BOT_PUBLIC_KEY` with your actual values.
+
+Follow the [Discord Developer Portal](https://discord.com/developers/applications) to create a new Discord bot and obtain its token, App ID.
+
+### 4. Configure the Bot
 
 All configuration is handled in the `config.ts` file. You'll need to set up the necessary IDs and tokens.
 
@@ -53,7 +71,7 @@ All configuration is handled in the `config.ts` file. You'll need to set up the 
 
 *You can find these IDs by enabling Developer Mode in Discord, right-clicking on a server, channel, or role, and selecting "Copy ID".*
 
-### 4. Run the Bot
+### 5. Run the Bot
 
 Once configured, you can start the bot using:
 

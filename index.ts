@@ -2,7 +2,14 @@ import { Client, Events, GatewayIntentBits } from "discord.js";
 import { registerCommands } from "./CommandsRegister";
 import { getShopCategories, shopMenu } from "./utils/shopSelector";
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent,
+  ],
+});
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_APP_ID = process.env.BOT_APP_ID;
 if (!BOT_TOKEN) {
@@ -37,6 +44,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.reply("Pong!");
       break;
     case "shop":
+      // DM only
+      if (interaction.inCachedGuild())
+        return await interaction.reply(
+          "This command is only available in DMs.",
+        );
       await shopMenu(interaction);
       break;
   }
