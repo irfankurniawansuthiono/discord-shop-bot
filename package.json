@@ -1,5 +1,13 @@
 {
   "name": "shop-discord-bot",
+  "version": "1.0.0",
+  "description": "A powerful and customizable Discord bot to run your own shop directly in your server.",
+  "homepage": "https://github.com/irfankurniawansuthiono/discord-shop-bot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irfankurniawansuthiono/discord-shop-bot.git"
+  },
+  "license": "MIT",
   "module": "index.ts",
   "type": "module",
   "private": true,
