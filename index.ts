@@ -1,7 +1,7 @@
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import { registerCommands } from "./CommandsRegister";
 import { getShopCategories, shopMenu } from "./utils/shopSelector";
-
+import { GUILD_ID } from "./config";
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -27,7 +27,7 @@ if (!BOT_APP_ID) {
 }
 
 async function initBot() {
-  await registerCommands(BOT_TOKEN, BOT_APP_ID, process.env.GUILD_ID);
+  await registerCommands(BOT_TOKEN, BOT_APP_ID, GUILD_ID);
   getShopCategories();
 }
 

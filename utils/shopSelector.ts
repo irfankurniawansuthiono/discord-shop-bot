@@ -617,14 +617,33 @@ async function createOrderConfirmation(
           await channel.delete().catch((err) => {
             console.error("Failed to delete order channel:", err);
           });
+          // create marks as completed message
+          const markCompletedMessage = new EmbedBuilder()
+            .setColor("#00ff00")
+            .setTitle(`🎉 Order Completed: ${item.name}`)
+            .setDescription(
+              `Order **${transactionId}** for **${item.name}** has been marked as completed by ${i.user}!`,
+            )
+            .addFields([
+              { name: "Item", value: item.name, inline: true },
+              { name: "Price", value: formatBalance(item.price), inline: true },
+              {
+                name: "Customer",
+                value: `<@${interaction.user.id}>`,
+                inline: true,
+              },
+              {
+                name: "Customer DiscordID",
+                value: interaction.user.id,
+                inline: true,
+              },
+              { name: "Marked By", value: `<@${i.user.id}>`, inline: true },
+              { name: "Marked By DiscordID", value: i.user.id, inline: true },
+            ]);
           await user.send({
-            content: `🎉 Your order **${transactionId}** for **${item.name}** has been marked as completed by ${i.user}! Thank you for shopping with us!`,
+            embeds: [markCompletedMessage],
           });
-          return await sendSuccessOrderNotification(
-            interaction,
-            item,
-            transactionId,
-          );
+          return await sendSuccessOrderNotification(i, item, transactionId);
         }
       });
 
@@ -716,7 +735,7 @@ async function createOrderConfirmation(
 }
 
 async function createReceipt(
-  interaction: StringSelectMenuInteraction,
+  interaction: StringSelectMenuInteraction | ButtonInteraction,
   item: any,
   transactionId: string,
 ) {
@@ -822,7 +841,7 @@ async function sendFailedOrderNotification(
 }
 
 async function sendSuccessOrderNotification(
-  interaction: StringSelectMenuInteraction,
+  interaction: StringSelectMenuInteraction | ButtonInteraction,
   item: any,
   transactionId: string,
 ) {
@@ -839,7 +858,7 @@ async function sendSuccessOrderNotification(
   }
   const embed = await createReceipt(interaction, item, transactionId);
   await channel.send({
-    content: `✅ Transaction Success! Marked as completed by <@${interaction.user.id}>`,
+    content: `✅ Transaction Success! Marked as completed by <@${interaction.user.id}>\nMarked By DiscordID: ${interaction.user.id}\nTransaction ID: \`${transactionId}\``,
     embeds: [embed],
   });
 }
