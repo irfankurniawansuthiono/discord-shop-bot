@@ -38,3 +38,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # paymentProof and all files inside it
 paymentProof
+# refundProof and all files inside it
+refundProof

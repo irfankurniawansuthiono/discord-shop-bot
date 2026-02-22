@@ -1,11 +1,13 @@
 import {
   EmbedBuilder,
   type ButtonInteraction,
+  type MessageCreateOptions,
   type StringSelectMenuInteraction,
 } from "discord.js";
 import {
   GUILD_ID,
   ORDER_HISTORY_FAILED_CHANNEL_ID,
+  ORDER_HISTORY_REFUND_CHANNEL_ID,
   ORDER_HISTORY_SUCCESS_CHANNEL_ID,
   ORDER_REJECTION_CHANNEL_ID,
 } from "../../config";
@@ -119,14 +121,9 @@ export class ShopNotifications {
 
   static async sendRejectionOrderNotification(
     interaction: StringSelectMenuInteraction,
-    item: any,
-    transactionId: string,
-    reason: string,
+    messageToSend: MessageCreateOptions,
   ) {
     try {
-      const rejectedPath = `./assets/img/rejected.png`;
-      const files = [];
-
       const guild = interaction.client.guilds.cache.get(GUILD_ID);
       if (!guild) {
         throw new Error("Guild not found");
@@ -138,46 +135,36 @@ export class ShopNotifications {
       if (!channel.isTextBased()) {
         throw new Error("Order rejection channel is not a text channel");
       }
-      const embed = new EmbedBuilder()
-        .setColor("#ff0000")
-        .setTitle(`❌ Order Rejected: ${item.name}`)
-        .setDescription(
-          `An order has been rejected for **${item.name}**. Please review the details below and take necessary actions.\nTransaction ID: \`${transactionId}\`\nReason: ${reason}`,
-        )
-        .addFields(
-          { name: "Item", value: item.name, inline: true },
-          { name: "Price", value: formatBalance(item.price), inline: true },
-          {
-            name: "Customer",
-            value: `<@${interaction.user.id}>`,
-            inline: true,
-          },
-          { name: "DiscordID", value: interaction.user.id, inline: true },
-          {
-            name: "Rejected by :",
-            value: `<@${interaction.user.id}>`,
-            inline: true,
-          },
-          {
-            name: "Item Location in Shop",
-            value:
-              itemPurchasePath
-                .get(transactionId)
-                ?.map((node) => node.name)
-                .join(" > ") || "Unknown",
-            inline: false,
-          },
-        )
-        .setTimestamp();
-      if (fs.existsSync(rejectedPath)) {
-        embed.setThumbnail(`attachment://rejected.png`);
-        files.push(rejectedPath);
-      }
-      await channel.send({ embeds: [embed], files: files });
+
+      await channel.send(messageToSend);
     } catch (error) {
       console.error("Error in sendRejectionOrderNotification:", error);
       await interaction.followUp({
         content: `❌ An error occurred while sending the rejection notification. Please try again later.`,
+      });
+    }
+  }
+  static async sendRefundNotification(
+    interaction: ButtonInteraction,
+    messageToSend: any,
+  ) {
+    try {
+      const guild = interaction.client.guilds.cache.get(GUILD_ID);
+      if (!guild) {
+        throw new Error("Guild not found");
+      }
+      const channel = guild.channels.cache.get(ORDER_HISTORY_REFUND_CHANNEL_ID);
+      if (!channel) {
+        throw new Error("Order history channel not found");
+      }
+      if (!channel.isTextBased()) {
+        throw new Error("Order history channel is not a text channel");
+      }
+      await channel.send(messageToSend);
+    } catch (error) {
+      console.error("Error in sendRefundNotification:", error);
+      await interaction.followUp({
+        content: `❌ An error occurred while sending the refund notification. Please try again later.`,
       });
     }
   }

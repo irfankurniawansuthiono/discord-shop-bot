@@ -1,8 +1,10 @@
 import {
   ActionRowBuilder,
+  Attachment,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  FileUploadBuilder,
   LabelBuilder,
   ModalBuilder,
   PermissionFlagsBits,
@@ -25,6 +27,8 @@ import { Receipt } from "./receipt";
 import { ShopNotifications } from "./shopNotification";
 import fs from "fs";
 import { Protector } from "../protector";
+import { saveImage, type FilesArrayType } from "../saveImage";
+import { MessageEmbedBuilder } from "./embedBuilder";
 export class Order {
   static async createChannelOrder(
     interaction: StringSelectMenuInteraction,
@@ -303,39 +307,31 @@ export class Order {
           const rejectedPath = `./assets/img/rejected.png`;
           const files = [];
 
-          const rejectionEmbed = new EmbedBuilder()
-            .setColor("#ff0000")
-            .setTitle(`❌ Order Rejected: ${item.name}`)
-            .setDescription(
-              `Order **${transactionId}** for **${item.name}** has been rejected by <@${i.user.id}>.\nReason: ${reason}`,
-            )
-            .addFields([
-              { name: "Item", value: item.name, inline: true },
-              { name: "Price", value: formatBalance(item.price), inline: true },
-              {
-                name: "Customer",
-                value: `<@${interaction.user.id}>`,
-                inline: true,
-              },
-              { name: "DiscordID", value: interaction.user.id, inline: true },
-            ])
-            .setTimestamp();
-          if (fs.existsSync(rejectedPath)) {
-            files.push(rejectedPath);
-            rejectionEmbed.setThumbnail(`attachment://rejected.png`);
-          }
-
-          await ShopNotifications.sendRejectionOrderNotification(
+          const rejectionMessageUser = await MessageEmbedBuilder.rejection(
+            i,
             interaction,
             item,
             transactionId,
             reason,
+            "❌ Your order has been rejected\nPlease make a ticket if you think this is a mistake.",
           );
-          await user.send({
-            content: `❌ Your order has been rejected\nPlease make a ticket if you think this is a mistake.`,
-            embeds: [rejectionEmbed],
-            files: files,
-          });
+          const rejectionMessageChannel = await MessageEmbedBuilder.rejection(
+            i,
+            interaction,
+            item,
+            transactionId,
+            reason,
+            `Order **${transactionId}** for **${item.name}** has been rejected by <@${i.user.id}>.`,
+          );
+          if (fs.existsSync(rejectedPath)) {
+            files.push(rejectedPath);
+          }
+
+          await ShopNotifications.sendRejectionOrderNotification(
+            interaction,
+            rejectionMessageChannel,
+          );
+          await user.send(rejectionMessageUser);
 
           await channel.delete().catch((err) => {
             console.error("Failed to delete order channel:", err);
@@ -343,9 +339,97 @@ export class Order {
         } else if (i.customId === "refund") {
           const protectorResult = await Protector.ManagerShopProtector(i);
           if (!protectorResult) return;
-          await user.send({
-            content: `💸 Order **${transactionId}** has been marked for refund.`,
+          const uploadRefundProofModal = new ModalBuilder()
+            .setCustomId(`upload-proof-${transactionId}`)
+            .setTitle("Upload refund Proof");
+          const refundProofInput = new FileUploadBuilder()
+            .setCustomId(`refund-proof-${transactionId}`)
+            .setRequired(true)
+            .setMinValues(1)
+            .setMaxValues(1);
+          const refundProofLabel = new LabelBuilder()
+            .setLabel("Payment Proof (Image Only)")
+            .setFileUploadComponent(refundProofInput);
+
+          // reason reffund
+          const refundReasonInput = new TextInputBuilder()
+            .setCustomId(`refund-reason-${transactionId}`)
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setPlaceholder("Please provide a reason for refunding this order");
+          const refundReasonLabel = new LabelBuilder()
+            .setLabel("Reason for refund")
+            .setTextInputComponent(refundReasonInput);
+          uploadRefundProofModal.addLabelComponents([
+            refundReasonLabel,
+            refundProofLabel,
+          ]);
+          await i.showModal(uploadRefundProofModal);
+
+          const submittedRefundProof = await i.awaitModalSubmit({
+            time: 7 * 24 * 60 * 1000,
           });
+          const refundButton = new ButtonBuilder()
+            .setCustomId("refund")
+            .setLabel("Refund")
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji("↩️");
+          const actionRefButton =
+            new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+              refundButton,
+            );
+          if (!submittedRefundProof) {
+            await i.followUp({
+              content: `⏰ No refund proof submitted. Please try again.`,
+              embeds: [],
+              components: [actionRefButton],
+            });
+            return;
+          }
+          await submittedRefundProof.deferUpdate();
+          const refundPath = "./db/refundProof";
+          if (!fs.existsSync(refundPath)) {
+            fs.mkdirSync(refundPath, { recursive: true });
+          }
+          const refundProof = submittedRefundProof.fields.getUploadedFiles(
+            `refund-proof-${transactionId}`,
+          );
+          if (!refundProof) {
+            await submittedRefundProof.editReply({
+              content: `❌ No refund proof found in the submission. Please try again.`,
+              embeds: [],
+              components: [actionRefButton],
+            });
+            return;
+          }
+          const filesArray: FilesArrayType = Array.from(refundProof.values());
+          const refundReason = submittedRefundProof.fields.getTextInputValue(
+            `refund-reason-${transactionId}`,
+          );
+          const refundImage = filesArray[0] as Attachment;
+
+          if (filesArray.length > 0) {
+            await saveImage(filesArray, transactionId, refundPath);
+            channel.delete().catch((err) => {
+              console.error("Failed to delete order channel:", err);
+            });
+            const refundStampPath = "./assets/img/refund.png";
+            const refundEmbed = await MessageEmbedBuilder.refund(
+              i,
+              interaction,
+              item,
+              transactionId,
+              refundReason,
+              refundImage.url,
+            );
+            const messageToSend = {
+              content: `💸 Order **${transactionId}** has been marked as a refund by <@${i.user.id}>`,
+              embeds: [refundEmbed],
+              files: [{ attachment: refundStampPath, name: "refund.png" }],
+            };
+            await user.send(messageToSend);
+            await ShopNotifications.sendRefundNotification(i, messageToSend);
+          }
         }
       });
     } catch (error) {
