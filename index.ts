@@ -1,7 +1,8 @@
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import { registerCommands } from "./CommandsRegister";
-import { getShopCategories, shopMenu } from "./utils/shopSelector";
+import { getShopCategories, shopMenu } from "./utils/shop";
 import { GUILD_ID } from "./config";
+import { ShopNotifications } from "./utils/Shop/shopNotification";
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
