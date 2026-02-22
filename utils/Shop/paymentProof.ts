@@ -22,6 +22,7 @@ import { itemPurchasePath } from "../shop";
 import { ShopNotifications } from "./shopNotification";
 import type Stream from "stream";
 import fs from "fs";
+import { saveImage, type FilesArrayType } from "../saveImage";
 export interface Payment {
   uploadTimeout: NodeJS.Timeout | null;
 }
@@ -149,14 +150,7 @@ export class Payment {
             return;
           }
           await submittedPaymentProof.deferUpdate();
-          const filesArray: (
-            | BufferResolvable
-            | Stream
-            | JSONEncodable<APIAttachment>
-            | Attachment
-            | AttachmentBuilder
-            | AttachmentPayload
-          )[] = Array.from(paymentProof.values());
+          const filesArray: FilesArrayType = Array.from(paymentProof.values());
 
           if (filesArray.length > 0) {
             const proofDir = "./db/paymentProof";
@@ -164,17 +158,7 @@ export class Payment {
             if (!fs.existsSync(proofDir)) {
               fs.mkdirSync(proofDir, { recursive: true });
             }
-
-            const file = filesArray[0] as Attachment;
-
-            const response = await fetch(file.url);
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-
-            const extension = file.name?.split(".").pop() ?? "png";
-            const proofPath = `${proofDir}/${transactionId}.${extension}`;
-
-            fs.writeFileSync(proofPath, buffer);
+            await saveImage(filesArray, transactionId, proofDir);
 
             await submittedPaymentProof.editReply({
               content: `✅ Payment proof received for **${item.name}**. Awaiting review from shop managers...`,
